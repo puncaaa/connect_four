@@ -24,18 +24,35 @@ export default function AuthModal() {
     if (!supabase) {
       // Mock Auth if Supabase isn't connected
       setTimeout(() => {
-        setUserProfile({
-          id: 'mock-123',
-          email,
-          username: isLogin ? email.split('@')[0] : username,
-          location: isLogin ? 'Almaty' : city,
-          rank: 'Diamond III',
-          wins: 42,
-          losses: 18,
-          streak: 4,
-          credits: 1450,
-          unlockedSkins: []
-        });
+        if (isLogin) {
+          // If simulating login, give them the mock veteran stats
+          setUserProfile({
+            id: 'mock-123',
+            email,
+            username: email.split('@')[0],
+            location: 'Almaty',
+            rank: 'Diamond III',
+            wins: 42,
+            losses: 18,
+            streak: 4,
+            credits: 1450,
+            unlockedSkins: []
+          });
+        } else {
+          // If simulating registration, give them a clean new profile
+          setUserProfile({
+            id: `new-${Math.random().toString(36).substr(2, 6)}`,
+            email,
+            username,
+            location: city,
+            rank: 'Bronze I',
+            wins: 0,
+            losses: 0,
+            streak: 0,
+            credits: 100,
+            unlockedSkins: []
+          });
+        }
         setAuthModalOpen(false);
         setLoading(false);
       }, 1000);
