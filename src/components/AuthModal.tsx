@@ -75,7 +75,9 @@ export default function AuthModal() {
           rank: 'Bronze I',
           wins: 0,
           losses: 0,
-          streak: 0
+          streak: 0,
+          credits: 100, // starting bonus
+          unlockedSkins: []
         });
       }
       setAuthModalOpen(false);

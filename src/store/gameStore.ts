@@ -56,6 +56,7 @@ interface GameState {
   findMatch: () => void;
   receiveRemoteMove: (col: number) => void;
   leaveMatch: () => void;
+  handleGameEnd: (winningPlayer: Player | null) => void;
   
   setAuthModalOpen: (isOpen: boolean) => void;
   setUserProfile: (profile: UserProfile | null) => void;
