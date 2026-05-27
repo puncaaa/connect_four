@@ -57,6 +57,8 @@ npm run dev
 
 3. Откройте `http://localhost:3000` в браузере.
 
+https://connect-four-oawu.vercel.app/
+
 ---
 
 *Создано в рамках тестового задания nFactorial.*
