@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-geist-mono);
+  
+  --color-neon-cyan: #00f3ff;
+  --color-neon-pink: #ff00ea;
+  --color-neon-purple: #9d00ff;
+  
+  --color-player1: var(--color-neon-pink);
+  --color-player2: var(--color-neon-cyan);
+  
+  --color-board: rgba(20, 20, 40, 0.8);
+  --color-board-border: rgba(157, 0, 255, 0.3);
+  
+  --color-dark-bg: #050508;
+  --color-panel: #0f0f16;
+}
+
+:root {
+  --background: #050508;
+  --foreground: #ededed;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Base custom utilities */
+@layer utilities {
+  .glow-cyan {
+    box-shadow: 0 0 10px #00f3ff, 0 0 20px #00f3ff;
+  }
+  .glow-pink {
+    box-shadow: 0 0 10px #ff00ea, 0 0 20px #ff00ea;
+  }
+  .glow-text-cyan {
+    text-shadow: 0 0 5px #00f3ff, 0 0 10px #00f3ff;
+  }
+  .glow-text-pink {
+    text-shadow: 0 0 5px #ff00ea, 0 0 10px #ff00ea;
+  }
+  .glass-panel {
+    background: rgba(15, 15, 22, 0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+}
