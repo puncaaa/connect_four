@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { getBestMove } from '@/lib/ai';
 import { supabase } from '@/lib/supabase';
+import type Peer from 'peerjs';
+import type { DataConnection } from 'peerjs';
 
 export type Player = 1 | 2;
 export type BoardState = (Player | null)[][];
@@ -39,6 +41,8 @@ interface GameState {
   multiplayerRole: Player | null; // Are we P1 or P2 in online?
   opponentProfile: Partial<UserProfile> | null;
   isSearchingMatch: boolean;
+  peerInstance: Peer | null;
+  peerConnection: DataConnection | null;
 
   // Auth State
   userProfile: UserProfile | null;
@@ -54,6 +58,7 @@ interface GameState {
   
   // Multiplayer Methods
   findMatch: () => void;
+  joinMatch: (roomId: string) => void;
   receiveRemoteMove: (col: number) => void;
   leaveMatch: () => void;
   handleGameEnd: (winningPlayer: Player | null) => void;
@@ -123,6 +128,8 @@ export const useGameStore = create<GameState>()(
   multiplayerRole: null,
   opponentProfile: null,
   isSearchingMatch: false,
+  peerInstance: null,
+  peerConnection: null,
   
   userProfile: null,
   isAuthModalOpen: false,
@@ -130,26 +137,78 @@ export const useGameStore = create<GameState>()(
   setAuthModalOpen: (isOpen) => set({ isAuthModalOpen: isOpen }),
   setUserProfile: (profile) => set({ userProfile: profile }),
 
-  findMatch: () => {
+  joinMatch: async (roomCode: string) => {
+    set({ gameMode: 'duel', isSearchingMatch: true, status: 'idle' });
+    try {
+      const PeerModule = await import('peerjs');
+      const Peer = PeerModule.default;
+      const peer = new Peer();
+      
+      peer.on('open', () => {
+        const conn = peer.connect(roomCode);
+        conn.on('open', () => {
+          set({
+            roomId: roomCode,
+            multiplayerRole: 2, // Guest is Player 2
+            status: 'playing',
+            isSearchingMatch: false,
+            peerInstance: peer,
+            peerConnection: conn,
+            opponentProfile: { username: 'Host', rank: 'Unranked', location: 'Peer2Peer' }
+          });
+          
+          conn.on('data', (data: any) => {
+            if (data.type === 'DROP') {
+              get().receiveRemoteMove(data.col);
+            }
+          });
+        });
+      });
+    } catch (err) {
+      console.error('PeerJS error:', err);
+      set({ isSearchingMatch: false });
+    }
+  },
+
+  findMatch: async () => {
     const mode = get().gameMode;
     
     if (mode === 'duel') {
-      set({ 
-        roomId: `du-${Math.random().toString(36).substr(2, 9)}`, 
-        multiplayerRole: 1, 
-        status: 'idle',
-        opponentProfile: null
-      });
-      // Mock a friend joining after 5 seconds
-      setTimeout(() => {
-        const currentStore = get();
-        if (currentStore.gameMode === 'duel' && currentStore.roomId) {
+      set({ isSearchingMatch: true, status: 'idle' });
+      try {
+        const PeerModule = await import('peerjs');
+        const Peer = PeerModule.default;
+        
+        // Generate a random ID for the room
+        const roomCode = `du-${Math.random().toString(36).substr(2, 6)}`;
+        const peer = new Peer(roomCode);
+        
+        peer.on('open', (id) => {
+          set({ 
+            roomId: id, 
+            multiplayerRole: 1, 
+            isSearchingMatch: false,
+            peerInstance: peer
+          });
+        });
+
+        peer.on('connection', (conn) => {
           set({
             status: 'playing',
-            opponentProfile: { username: 'Friend_01', rank: 'Unranked', location: 'Direct Link', credits: 0, unlockedSkins: [] }
+            peerConnection: conn,
+            opponentProfile: { username: 'Guest', rank: 'Unranked', location: 'Peer2Peer' }
           });
-        }
-      }, 5000);
+          
+          conn.on('data', (data: any) => {
+            if (data.type === 'DROP') {
+              get().receiveRemoteMove(data.col);
+            }
+          });
+        });
+      } catch (err) {
+        console.error('PeerJS Host error:', err);
+        set({ isSearchingMatch: false });
+      }
       return;
     }
 
@@ -219,6 +278,10 @@ export const useGameStore = create<GameState>()(
       turnsCount: 0,
       currentPlayer: 1
     });
+    const { peerInstance, peerConnection } = get();
+    if (peerConnection) peerConnection.close();
+    if (peerInstance) peerInstance.destroy();
+    set({ peerInstance: null, peerConnection: null });
   },
 
   receiveRemoteMove: (col: number) => {
@@ -337,7 +400,12 @@ export const useGameStore = create<GameState>()(
     }
 
     // Broadcast if online or duel
-    if (gameMode === 'online' || gameMode === 'duel') {
+    if (gameMode === 'duel') {
+      const { peerConnection } = get();
+      if (peerConnection && peerConnection.open) {
+        peerConnection.send({ type: 'DROP', col });
+      }
+    } else if (gameMode === 'online') {
       // Mock remote opponent move
       if (nextPlayer !== get().multiplayerRole) {
         setTimeout(() => get().receiveRemoteMove(Math.floor(Math.random() * COLS)), 1500);

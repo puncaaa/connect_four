@@ -4,7 +4,7 @@ import { Trophy, History, Shield, Zap, Settings, Orbit, LogIn, UserCircle, LogOu
 import { useGameStore, GameMode } from '@/store/gameStore';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import StoreModal from './StoreModal';
 
 export default function Dashboard() {
@@ -16,6 +16,17 @@ export default function Dashboard() {
   } = useGameStore();
 
   const [isStoreOpen, setStoreOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const roomCode = urlParams.get('room');
+      // Only join if we aren't already in a room and have a code
+      if (roomCode && !useGameStore.getState().roomId) {
+        useGameStore.getState().joinMatch(roomCode);
+      }
+    }
+  }, []);
 
   const handleLogout = async () => {
     if (supabase) {
@@ -117,8 +128,8 @@ export default function Dashboard() {
             {roomId && gameMode === 'duel' && !opponentProfile && (
               <div className="mt-3 p-3 bg-white/5 border border-white/10 rounded-lg text-center">
                 <div className="text-[10px] text-white/40 uppercase mb-2">Send this link to a friend</div>
-                <div className="bg-black/50 border border-neon-purple/30 text-neon-purple p-2 rounded text-xs font-mono select-all">
-                  play.antigravity.dev/?room={roomId}
+                <div className="bg-black/50 border border-neon-purple/30 text-neon-purple p-2 rounded text-xs font-mono select-all overflow-hidden whitespace-nowrap text-ellipsis">
+                  {typeof window !== 'undefined' ? `${window.location.origin}/?room=${roomId}` : `/?room=${roomId}`}
                 </div>
                 <div className="mt-2 text-[10px] text-neon-cyan animate-pulse">Waiting for opponent to connect...</div>
               </div>
